@@ -67,7 +67,7 @@ Had sex (lost your virginity)? 3
 Had sex three or more times in one night? 3
 Had sex 10 or more times in your life? 3
 Had sex in four or more positions? 2
-Done a 69? 3 // Keep as question number 69 
+69? 3
 Had sex with a stranger or person you just met? 3
 Had sex in a car? 2
 Rented a hotel/motel/bedroom specifically for the purpose of committing a sexual act? 2
@@ -84,11 +84,11 @@ Had sex with a partner with a 4 or more year age difference? 3
 Had sex with a virgin? 2
 Had sex without protection? 3
 Given or received “road head” (oral sex while driving)? 3
-Had a STI test due to reasonable suspicion, or had an STI? 3
+Had a STI/STD test due to reasonable suspicion, or had an STI/STD? 3
 Had sex with 2+ people at the same time? 4
 Had two or more distinct acts of sex with two or more people within 24 hours? 3
 Have a body count of five or more (had sex with 5+ people in your life)? 3
-Taken (or someone else took) and kept, gave away, or sold sexually explicit images/videos of yourself and/or your partner with consent? 3
+Taken (or someone else took) and kept, gave away, or sold sexually explicit images/videos of yourself and/or your partner? 3
 Had period sex? 3
 Had anal sex? 2
 Had a pregnancy scare, impregnated someone, or been impregnated? 3
@@ -121,7 +121,6 @@ rawQuestions.split('\n').forEach(line => {
 });
 
 // 2. Randomize & Handle Question 69
-// Find "Done a 69?"
 const q69Index = parsedQuestions.findIndex(item => item.q.includes("Done a 69"));
 let q69Obj = null;
 
