@@ -1,5 +1,3 @@
-// Paste your full raw text here. The script will parse the question and the weight automatically.
-// Make sure every line has the question followed by the weight number at the end.
 const rawQuestions = `Held hands romantically? 1
 Been on a date? 1
 Spooned or cuddled with a MPS for longer than 20 min? 1
@@ -35,7 +33,7 @@ Engaged in sexual activity over video or phone call? 2
 Cheated on a significant other during a relationship? 3
 Purchased contraceptives (purchased condoms, or gone on birth control for sexual reasons)? 1
 Given or received oral sex? 2
-Ingested someone else’s or your own genital secretion? 3
+Ingested someone else’s or your own cum? 3
 Used a sex toy with a partner? 3
 Spent the night with a MPS? 1
 Been walked in on while engaging in a sexual act? 2
