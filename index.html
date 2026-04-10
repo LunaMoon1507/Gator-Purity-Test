@@ -1,1 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UF Purity Test</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="uf-blue">UF</span> <span class="uf-orange">Purity Test</span></h1>
+            <p class="intro">Welcome to our modernized college purity test (free and anonymous)! Reminder, this is not a bucket list. We are not responsible for any actions performed in or as a result of this test.</p>
+            
+            <div class="disclaimer-box">
+                <input type="checkbox" id="disclaimer-checkbox">
+                <label for="disclaimer-checkbox">I acknowledge the statement above and wish to continue.</label>
+            </div>
 
+            <details>
+                <summary>How is this different from the Rice Purity Test?</summary>
+                <p>Great question! The UF Purity Test has many of the same questions as the original Rice Purity Test, except we “modernized” and switched up the questions to make them more applicable to today’s students. In addition, we added weights to the questions based on the severity of the act, to make certain acts lower your score more than others. The new UF Purity Test still has 100 questions, with 100 being the highest score (most pure) and 0 being the lowest (least pure).</p>
+            </details>
+            
+            <details>
+                <summary>Who even made this??</summary>
+                <p>Two very horny CS students at UF made this quiz :)</p>
+            </details>
+        </header>
+
+        <main id="quiz-section" class="disabled">
+            <p class="instructions">Check the box if you have ever...</p>
+            <div id="questions-container"></div>
+            
+            <div class="pagination">
+                <button id="prev-btn" disabled>Previous</button>
+                <span id="page-info">Page 1</span>
+                <button id="next-btn">Next</button>
+                <button id="submit-btn" class="hidden">Calculate Score</button>
+            </div>
+        </main>
+
+        <div id="results-section" class="hidden">
+            <h2>Your UF Purity Score</h2>
+            <div id="score-display">100</div>
+            <button onclick="location.reload()">Retake Test</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
