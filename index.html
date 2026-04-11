@@ -8,11 +8,15 @@
 </head>
 <body>
     <div class="container">
+        <div class="top-nav">
+            <a href="statistics.html" class="stats-btn">Statistics</a>
+        </div>
+
         <header>
             <h1><span class="uf-blue">UF</span> <span class="uf-orange">Purity Test</span></h1>
             <p class="intro">Welcome to our modernized college purity test (free and anonymous)! Reminder, this is not a bucket list. We are not responsible for any actions performed in or as a result of this test.</p>
             
-            <div class="disclaimer-box">
+            <div class="disclaimer-box" id="disclaimer-container">
                 <input type="checkbox" id="disclaimer-checkbox">
                 <label for="disclaimer-checkbox">I acknowledge the statement above and wish to continue.</label>
             </div>
@@ -44,6 +48,25 @@
             <h2>Your UF Purity Score</h2>
             <div id="score-display">100</div>
             <button onclick="location.reload()">Retake Test</button>
+
+            <div id="demographics-section">
+                <hr>
+                <h3>Add to our analytics! (Optional)</h3>
+                <p>Submit your score anonymously to help us track campus trends.</p>
+                
+                <div class="form-group">
+                    <label for="yob">Birth Year:</label>
+                    <input type="number" id="yob" placeholder="e.g., 2003" min="1980" max="2010">
+                </div>
+                
+                <div class="form-group">
+                    <label for="major">Major:</label>
+                    <input type="text" id="major" placeholder="e.g., Computer Science">
+                </div>
+
+                <button id="submit-data-btn">Submit Anonymous Data</button>
+                <p id="thank-you-msg" class="hidden uf-orange">Data sent! Thanks for contributing.</p>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>
