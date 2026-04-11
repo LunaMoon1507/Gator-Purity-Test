@@ -73,6 +73,13 @@ details {
     border: 1px solid #222;
 }
 
+details p {
+    margin-top: 10px;
+    margin-bottom: 0px;
+    margin-left: 18px;
+    line-height: 1.5;
+}
+
 summary {
     cursor: pointer;
     font-weight: bold;
@@ -125,7 +132,7 @@ button {
     transition: 0.2s;
 }
 
-button:hover { background-color: #0051a8; }
+button:hover { background-color: #0055de; }
 button:disabled { background-color: var(--gray); cursor: not-allowed; }
 #submit-btn { background-color: var(--uf-orange); }
 #submit-btn:hover { background-color: #cc6600; }
