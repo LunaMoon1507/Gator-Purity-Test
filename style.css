@@ -178,7 +178,6 @@ button:disabled { background-color: var(--gray); cursor: not-allowed; }
     margin-bottom: 5px;
     color: var(--uf-blue);
     font-weight: bold;
-    text-shadow: 1px 1px 2px #000;
 }
 
 .form-group input {
