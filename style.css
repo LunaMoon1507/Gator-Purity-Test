@@ -45,7 +45,6 @@ h1 {
     font-size: 2.5rem;
     text-align: center;
     margin-bottom: 10px;
-    -webkit-text-stroke: 1px #FFFFFF;
 }
 
 .uf-blue { color: var(--uf-blue); }
@@ -252,4 +251,17 @@ button:disabled { background-color: var(--gray); cursor: not-allowed; }
     font-size: 1.2rem;
     color: var(--uf-orange);
     margin-top: 50px;
+    animation: pulse-color 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-color {
+    0% { 
+        color: var(--uf-orange); 
+    }
+    50% { 
+        color: #b85816;
+    }
+    100% { 
+        color: var(--uf-orange); 
+    }
 }
