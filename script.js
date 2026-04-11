@@ -102,44 +102,41 @@ Sat on or had somebody else sit on your face with no clothes on? 3`;
 // 1. Parse Data
 let parsedQuestions = [];
 let totalPointsAvailable = 0;
+let finalScore = 100; // Tracked globally for analytics
 
 rawQuestions.split('\n').forEach(line => {
     line = line.trim();
     if (!line) return;
     
-    // Extract question and weight, ignoring comments (//)
     const match = line.match(/^(.*?)\s+(\d+)(?:\s*\/\/.*)?$/);
     if (match) {
         const weight = parseInt(match[2]);
         parsedQuestions.push({
             q: match[1].trim(),
             w: weight,
-            checked: false // user state
+            checked: false
         });
         totalPointsAvailable += weight;
     }
 });
 
 // 2. Randomize & Handle Question 69
-const q69Index = parsedQuestions.findIndex(item => item.q.includes("Done a 69"));
+const q69Index = parsedQuestions.findIndex(item => item.q.includes("69?"));
 let q69Obj = null;
 
 if (q69Index !== -1) {
-    q69Obj = parsedQuestions.splice(q69Index, 1)[0]; // Remove it from array
+    q69Obj = parsedQuestions.splice(q69Index, 1)[0];
 }
 
-// Shuffle the rest using Fisher-Yates
 for (let i = parsedQuestions.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [parsedQuestions[i], parsedQuestions[j]] = [parsedQuestions[j], parsedQuestions[i]];
 }
 
-// Re-insert q69 exactly at index 68 (so it becomes item #69)
 if (q69Obj) {
     parsedQuestions.splice(68, 0, q69Obj);
 }
 
-// Assign permanent numbers based on new order
 parsedQuestions.forEach((item, index) => {
     item.number = index + 1;
 });
@@ -150,6 +147,7 @@ let currentPage = 0;
 const totalPages = Math.ceil(parsedQuestions.length / itemsPerPage);
 
 const disclaimer = document.getElementById('disclaimer-checkbox');
+const disclaimerContainer = document.getElementById('disclaimer-container');
 const quizSection = document.getElementById('quiz-section');
 const container = document.getElementById('questions-container');
 const prevBtn = document.getElementById('prev-btn');
@@ -157,7 +155,6 @@ const nextBtn = document.getElementById('next-btn');
 const submitBtn = document.getElementById('submit-btn');
 const pageInfo = document.getElementById('page-info');
 
-// Enable quiz when disclaimer is checked
 disclaimer.addEventListener('change', (e) => {
     if (e.target.checked) {
         quizSection.classList.remove('disabled');
@@ -168,6 +165,13 @@ disclaimer.addEventListener('change', (e) => {
 
 function renderPage() {
     container.innerHTML = '';
+    
+    // Hide disclaimer if past the first page
+    if (currentPage === 0) {
+        disclaimerContainer.classList.remove('hidden');
+    } else {
+        disclaimerContainer.classList.add('hidden');
+    }
     
     const start = currentPage * itemsPerPage;
     const end = start + itemsPerPage;
@@ -182,7 +186,6 @@ function renderPage() {
         checkbox.id = `q-${item.number}`;
         checkbox.checked = item.checked;
         
-        // Save state when user clicks
         checkbox.addEventListener('change', (e) => {
             item.checked = e.target.checked;
         });
@@ -196,7 +199,6 @@ function renderPage() {
         container.appendChild(div);
     });
 
-    // Update Pagination UI
     pageInfo.innerText = `Page ${currentPage + 1} of ${totalPages}`;
     prevBtn.disabled = currentPage === 0;
 
@@ -211,7 +213,6 @@ function renderPage() {
     window.scrollTo(0, 0);
 }
 
-// Button Listeners
 prevBtn.addEventListener('click', () => {
     if (currentPage > 0) {
         currentPage--;
@@ -235,16 +236,60 @@ submitBtn.addEventListener('click', () => {
         }
     });
 
-    // Calculation: [(Sum of all weights) - (sum of gained points)] / (total available points) * 100
-    let finalScore = Math.floor(((totalPointsAvailable - gainedPoints) / totalPointsAvailable) * 100);
-    
-    // Safety clamp between 0 and 100
+    finalScore = Math.floor(((totalPointsAvailable - gainedPoints) / totalPointsAvailable) * 100);
     finalScore = Math.max(0, Math.min(100, finalScore));
 
     document.getElementById('quiz-section').classList.add('hidden');
     document.querySelector('header').classList.add('hidden');
     document.getElementById('results-section').classList.remove('hidden');
     document.getElementById('score-display').innerText = finalScore;
+    window.scrollTo(0, 0);
+});
+
+// Analytics Submission Logic
+document.getElementById('submit-data-btn').addEventListener('click', async () => {
+    const yob = document.getElementById('yob').value;
+    const major = document.getElementById('major').value;
+    
+    // Format date/time locally
+    const now = new Date();
+    const timestamp = now.toLocaleString(); 
+
+    const analyticsData = {
+        score: finalScore,
+        date: timestamp,
+        birthYear: yob || "N/A",
+        major: major || "N/A"
+    };
+
+    // PASTE YOUR GOOGLE WEB APP URL HERE
+    const backendURL = "https://script.google.com/macros/s/AKfycbwl76IRcvdgC5sg1tmyg3yQEXBjn1ELcY-rhIjP68D9NDDc67N3XN28DD4bAIwMELEx/exec"; 
+
+    const btn = document.getElementById('submit-data-btn');
+    btn.disabled = true;
+    btn.innerText = "Sending...";
+
+    try {
+        await fetch(backendURL, {
+            method: 'POST',
+            body: JSON.stringify(analyticsData),
+            headers: {
+                // Using text/plain prevents CORS preflight issues with standard web servers
+                "Content-Type": "text/plain;charset=utf-8",
+            }
+        });
+
+        // Hide form and show success text
+        btn.classList.add('hidden');
+        document.querySelectorAll('.form-group').forEach(el => el.classList.add('hidden'));
+        document.getElementById('thank-you-msg').classList.remove('hidden');
+
+    } catch (error) {
+        console.error("Error saving data:", error);
+        alert("Oops! Something went wrong saving your data.");
+        btn.disabled = false;
+        btn.innerText = "Submit Anonymous Data";
+    }
 });
 
 // Init
