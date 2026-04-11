@@ -192,3 +192,56 @@ button:disabled { background-color: var(--gray); cursor: not-allowed; }
 #submit-data-btn:hover {
     background-color: #666;
 }
+
+/* Dashboard Styles */
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-card {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    border-top: 4px solid var(--uf-orange);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.stat-card h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-value {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--uf-blue);
+    margin: 10px 0;
+}
+
+.stat-meta {
+    font-size: 0.9rem;
+    color: #ccc;
+    font-style: italic;
+}
+
+.chart-container {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 30px;
+    border-top: 4px solid var(--uf-blue);
+}
+
+#loading-msg {
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--uf-orange);
+    margin-top: 50px;
+}
