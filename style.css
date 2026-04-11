@@ -1,7 +1,7 @@
 :root {
     --uf-orange: #fa8334;
-    --uf-blue: #3497fa;
-    --bg-color: #636363;
+    --uf-blue: #0e91e3;
+    --bg-color: #4f4f4f;
     --text-color: #FFFFFF;
     --gray: #878787;
 }
@@ -45,7 +45,7 @@ h1 {
 }
 
 details {
-    background-color: #111;
+    background-color: var(--uf-blue);
     padding: 12px;
     margin-bottom: 8px;
     border-radius: 5px;
