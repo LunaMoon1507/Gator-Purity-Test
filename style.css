@@ -1,7 +1,7 @@
 :root {
     --uf-orange: #f77300;
     --uf-blue: #0b87d4;
-    --bg-color: #2b2b2b;
+    --bg-color: #1b1b1b;
     --text-color: #FFFFFF;
     --gray: #878787;
 }
@@ -97,8 +97,19 @@ summary {
     align-items: flex-start;
     margin-bottom: 15px;
     padding: 10px;
-    background: #474747;
+    background: #555;
     border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s ease;
+}
+
+.question-item:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+}
+
+.question-item:active {
+    transform: scale(0.98) translateY(2px);
 }
 
 .question-item input {
