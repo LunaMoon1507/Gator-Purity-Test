@@ -100,16 +100,17 @@ summary {
     background: #555;
     border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transform: translateZ(0);                    /* CHANGE THIS */
     transition: transform 0.3s ease;
 }
 
 .question-item:hover {
-    transform: scale(1.03);
+    transform: translateZ(0) scale(1.015);       /* CHANGE THIS */
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
 }
 
 .question-item:active {
-    transform: scale(0.98) translateY(2px);
+    transform: translateZ(0) scale(0.98) translateY(2px);  /* CHANGE THIS */
 }
 
 .question-item input {
