@@ -1,4 +1,9 @@
 const backendURL = "https://script.google.com/macros/s/AKfycbwl76IRcvdgC5sg1tmyg3yQEXBjn1ELcY-rhIjP68D9NDDc67N3XN28DD4bAIwMELEx/exec"; 
+const analyticsState = {
+    rawData: [],
+    weeklyChartData: null,
+    isReady: false
+};
 
 async function fetchStats() {
     try {
@@ -16,23 +21,177 @@ async function fetchStats() {
     }
 }
 
+function getStartOfDay(date) {
+    const normalizedDate = new Date(date);
+    normalizedDate.setHours(0, 0, 0, 0);
+    return normalizedDate;
+}
+
+function formatLabelMD(date) {
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function normalizeChartScore(score) {
+    if (!Number.isFinite(score) || score === 0 || score === 100) {
+        return 50;
+    }
+
+    return score;
+}
+
+function initializeAnalyticsMenu() {
+    const analyticsSelect = document.getElementById('analytics-select');
+    if (!analyticsSelect) return;
+
+    analyticsSelect.addEventListener('change', async () => {
+        const selectedOption = analyticsSelect.options[analyticsSelect.selectedIndex];
+        const selectedValue = selectedOption?.value || '';
+        await renderAnalyticsSelection(selectedValue);
+    });
+}
+
+function setChartLoading(loadingText, isVisible) {
+    const chartLoadingMsg = document.getElementById('chart-loading-msg');
+    if (!chartLoadingMsg) return;
+
+    chartLoadingMsg.innerText = loadingText;
+    chartLoadingMsg.classList.toggle('hidden', !isVisible);
+}
+
+function showChartContainer(isVisible) {
+    const chartContainer = document.getElementById('chart-container');
+    if (!chartContainer) return;
+
+    chartContainer.classList.toggle('hidden', !isVisible);
+}
+
+function showCanvasView() {
+    const chartCanvas = document.getElementById('scoreChart');
+    const rankingsView = document.getElementById('rankings-view');
+
+    if (chartCanvas) chartCanvas.classList.remove('hidden');
+    if (rankingsView) rankingsView.classList.add('hidden');
+}
+
+function showRankingsView() {
+    const chartCanvas = document.getElementById('scoreChart');
+    const rankingsView = document.getElementById('rankings-view');
+
+    if (chartCanvas) chartCanvas.classList.add('hidden');
+    if (rankingsView) rankingsView.classList.remove('hidden');
+}
+
+function setChartTitle(title) {
+    const chartTitle = document.getElementById('chart-title');
+    if (!chartTitle) return;
+
+    chartTitle.innerText = title;
+}
+
+function destroyExistingChart() {
+    if (window.myChart) {
+        window.myChart.destroy();
+    }
+}
+
+function getValidEntries(rawData) {
+    return rawData
+        .map((entry) => {
+            const score = parseInt(entry.Score, 10);
+            const birthYear = parseInt(entry['Birth Year'], 10);
+            const major = typeof entry.Major === 'string' ? entry.Major.trim() : '';
+            return {
+                score,
+                birthYear,
+                major
+            };
+        })
+        .filter((entry) => Number.isFinite(entry.score) && entry.score !== 0 && entry.score !== 100);
+}
+
+function wait(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
+
+async function renderAnalyticsSelection(selection) {
+    if (!analyticsState.isReady) return;
+
+    if (!selection) {
+        showChartContainer(false);
+        setChartLoading('', false);
+        destroyExistingChart();
+        return;
+    }
+
+    setChartLoading('Loading analytics...', true);
+    showChartContainer(false);
+    await wait(350);
+
+    switch (selection) {
+        case 'average-scores-last-30':
+            setChartTitle('Average Scores (Last 30 Days)');
+            drawAverageScoresChart(analyticsState.weeklyChartData);
+            break;
+        case 'scores-vs-age':
+            setChartTitle('Scores vs. Age');
+            drawScoresVsAgeChart(analyticsState.rawData);
+            break;
+        case 'majors-highest':
+            setChartTitle('Majors with the Highest Scores');
+            drawMajorsRanking(analyticsState.rawData, 'highest');
+            break;
+        case 'majors-lowest':
+            setChartTitle('Majors with the Lowest Scores');
+            drawMajorsRanking(analyticsState.rawData, 'lowest');
+            break;
+        default:
+            return;
+    }
+
+    setChartLoading('', false);
+    showChartContainer(true);
+}
+
+function createWeeklyChartData() {
+    const today = getStartOfDay(new Date());
+    const points = [];
+
+    for (let weeksAgo = 4; weeksAgo >= 0; weeksAgo -= 1) {
+        const anchorDate = new Date(today);
+        anchorDate.setDate(today.getDate() - (weeksAgo * 7));
+
+        const windowStart = new Date(anchorDate);
+        windowStart.setDate(anchorDate.getDate() - 6);
+
+        points.push({
+            anchorDate,
+            windowStart,
+            sum: 0,
+            count: 0
+        });
+    }
+
+    return { points };
+}
+
 function processData(data) {
     let totalScore = 0;
+    let validCount = 0;
     let highest = { score: -1, major: "" };
     let lowest = { score: 101, major: "" };
-    
-    // Object to hold dates and scores for the chart
-    const dailyScores = {};
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const weeklyChartData = createWeeklyChartData();
 
     data.forEach(entry => {
         // Assume headers in Sheet are: Date, Score, Birth Year, Major
         const score = parseInt(entry.Score);
-        if (isNaN(score)) return;
+        if (isNaN(score) || score === 0 || score === 100) return;
 
         // Overall Stats
         totalScore += score;
+        validCount += 1;
         
         if (score > highest.score) {
             highest.score = score;
@@ -44,21 +203,28 @@ function processData(data) {
             lowest.major = entry.Major || "Not specified";
         }
 
-        // Chart Data formatting (group by date)
+        // Group qualifying scores into five weekly buckets, each ending on an x-axis date.
         const dateObj = new Date(entry.Date);
-        if (dateObj >= thirtyDaysAgo) {
-            // Format as YYYY-MM-DD
-            const dateString = dateObj.toISOString().split('T')[0]; 
-            if (!dailyScores[dateString]) {
-                dailyScores[dateString] = { sum: 0, count: 0 };
+        if (Number.isNaN(dateObj.getTime())) return;
+
+        const entryDate = getStartOfDay(dateObj);
+        weeklyChartData.points.forEach((point) => {
+            const isInBucket = entryDate >= point.windowStart && entryDate <= point.anchorDate;
+
+            if (isInBucket) {
+                point.sum += score;
+                point.count += 1;
             }
-            dailyScores[dateString].sum += score;
-            dailyScores[dateString].count += 1;
-        }
+        });
     });
 
+    if (validCount === 0) {
+        document.getElementById('loading-msg').innerText = "No qualifying data available yet.";
+        return;
+    }
+
     // Calculate Averages
-    const avgScore = Math.floor(totalScore / data.length);
+    const avgScore = Math.floor(totalScore / validCount);
     
     // Update DOM
     document.getElementById('avg-score').innerText = avgScore;
@@ -71,34 +237,67 @@ function processData(data) {
     document.getElementById('loading-msg').classList.add('hidden');
     document.getElementById('dashboard-content').classList.remove('hidden');
 
-    // Draw Chart
-    drawChart(dailyScores);
+    analyticsState.rawData = data;
+    analyticsState.weeklyChartData = weeklyChartData;
+    analyticsState.isReady = true;
+
+    // Keep chart hidden until a dropdown selection is made.
+    document.getElementById('analytics-select').value = '';
+    setChartLoading('', false);
+    showChartContainer(false);
 }
 
-function drawChart(dailyScores) {
-    // Sort dates chronologically
-    const sortedDates = Object.keys(dailyScores).sort();
-    
-    const labels = [];
-    const chartData = [];
-
-    // helper: "2026-04-27" -> "4/27"
-    const formatLabelMD = (yyyyMmDd) => {
-        const [y, m, d] = yyyyMmDd.split('-').map(Number);
-        return `${m}/${d}`;
+function getCommonChartOptions() {
+    return {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: false,
+                suggestedMin: 0,
+                suggestedMax: 100,
+                grid: { color: '#555' },
+                ticks: { color: '#fff' }
+            },
+            x: {
+                grid: { color: '#555' },
+                ticks: { color: '#fff' }
+            }
+        },
+        plugins: {
+            legend: { labels: { color: '#fff' } }
+        }
     };
-    
-    sortedDates.forEach(date => {
-        labels.push(formatLabelMD(date));
-        chartData.push(Math.floor(dailyScores[date].sum / dailyScores[date].count));
+}
+
+function drawAverageScoresChart(weeklyChartData) {
+    showCanvasView();
+    const labels = weeklyChartData.points.map((point) => formatLabelMD(point.anchorDate));
+    const weekRanges = weeklyChartData.points.map((point) => (
+        `${formatLabelMD(point.windowStart)} - ${formatLabelMD(point.anchorDate)}`
+    ));
+    const chartData = weeklyChartData.points.map((point) => {
+        const averageScore = point.count > 0 ? Math.floor(point.sum / point.count) : NaN;
+        return normalizeChartScore(averageScore);
     });
 
     const ctx = document.getElementById('scoreChart').getContext('2d');
     
-    // Check if chart already exists to avoid canvas overlap
-    if(window.myChart) {
-        window.myChart.destroy();
-    }
+    destroyExistingChart();
+
+    const options = getCommonChartOptions();
+    options.plugins.tooltip = {
+        callbacks: {
+            title: (items) => items?.[0]?.label ?? "",
+            label: (context) => {
+                const rangeIndex = context.dataIndex;
+
+                const rangeLabel = weekRanges[rangeIndex];
+                return rangeLabel
+                    ? `Avg Score (${rangeLabel}): ${context.parsed.y}`
+                    : `Avg Score: ${context.parsed.y}`;
+            }
+        }
+    };
 
     window.myChart = new Chart(ctx, {
         type: 'line',
@@ -108,42 +307,128 @@ function drawChart(dailyScores) {
                 label: 'Average Score',
                 data: chartData,
                 borderColor: '#0e91e3', // UF Blue
-                backgroundColor: 'rgba(14, 145, 227, 0.2)',
+                backgroundColor: 'rgba(14, 145, 227, 0.5)',
                 borderWidth: 2,
                 tension: 0.3,
+                spanGaps: false,
                 fill: true,
-                pointBackgroundColor: '#fa8334', // UF Orange
+                pointBackgroundColor: '#0e91e3',
+                pointBorderColor: '#0e91e3',
                 pointRadius: 5
             }]
         },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    suggestedMin: 0,
-                    suggestedMax: 100,
-                    grid: { color: '#555' },
-                    ticks: { color: '#fff' }
-                },
-                x: {
-                    grid: { color: '#555' },
-                    ticks: { color: '#fff' }
-                }
-            },
-            plugins: {
-                legend: { labels: { color: '#fff' } },
-
-                // Force tooltip hover title to match simplified date label
-                tooltip: {
-                    callbacks: {
-                        title: (items) => items?.[0]?.label ?? ""
-                    }
-                }
-            }
-        }
+        options: options
     });
 }
 
+function drawScoresVsAgeChart(rawData) {
+    showCanvasView();
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+    destroyExistingChart();
+
+    const validEntries = getValidEntries(rawData);
+    const yearStats = {};
+
+    for (let year = 2000; year <= 2012; year += 1) {
+        yearStats[year] = { sum: 0, count: 0 };
+    }
+
+    validEntries.forEach((entry) => {
+        if (!Number.isFinite(entry.birthYear)) return;
+        if (entry.birthYear < 2000 || entry.birthYear > 2012) return;
+
+        yearStats[entry.birthYear].sum += entry.score;
+        yearStats[entry.birthYear].count += 1;
+    });
+
+    const labels = [];
+    const data = [];
+    for (let year = 2000; year <= 2012; year += 1) {
+        labels.push(String(year));
+        const stats = yearStats[year];
+        data.push(stats.count > 0 ? Math.round(stats.sum / stats.count) : null);
+    }
+
+    const options = getCommonChartOptions();
+    options.scales.y.beginAtZero = true;
+    options.plugins.tooltip = {
+        callbacks: {
+            label: (context) => {
+                if (context.parsed.y == null) return '';
+                return `Avg Score: ${context.parsed.y}`;
+            }
+        }
+    };
+
+    window.myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Average Score',
+                data,
+                backgroundColor: 'rgba(14, 145, 227, 0.5)',
+                borderColor: '#0e91e3',
+                borderWidth: 2
+            }]
+        },
+        options
+    });
+}
+
+function getMajorAverages(rawData) {
+    const validEntries = getValidEntries(rawData);
+    const majorStats = {};
+
+    validEntries.forEach((entry) => {
+        const majorKey = entry.major;
+        if (!majorKey) return;
+        if (majorKey.toUpperCase() === 'N/A') return;
+
+        if (!majorStats[majorKey]) {
+            majorStats[majorKey] = { sum: 0, count: 0 };
+        }
+
+        majorStats[majorKey].sum += entry.score;
+        majorStats[majorKey].count += 1;
+    });
+
+    return Object.entries(majorStats).map(([major, stats]) => ({
+        major,
+        average: Math.round(stats.sum / stats.count)
+    }));
+}
+
+function drawMajorsRanking(rawData, mode) {
+    destroyExistingChart();
+    showRankingsView();
+
+    const rankingsView = document.getElementById('rankings-view');
+    if (!rankingsView) return;
+
+    const majorAverages = getMajorAverages(rawData);
+    if (!majorAverages.length) {
+        rankingsView.innerHTML = '<div class="ranking-empty">No qualifying major data is available yet.</div>';
+        return;
+    }
+
+    const sortedMajors = majorAverages.sort((a, b) => {
+        if (a.average === b.average) {
+            return a.major.localeCompare(b.major);
+        }
+
+        return mode === 'highest' ? b.average - a.average : a.average - b.average;
+    });
+
+    let topFive = sortedMajors.slice(0, 5);
+
+    const rankingHtml = topFive
+        .map((item, index) => `<div class="ranking-item">${index + 1}) ${item.major} - ${item.average}</div>`)
+        .join('');
+
+    rankingsView.innerHTML = `<div class="ranking-list">${rankingHtml}</div>`;
+}
+
 // Start fetching when page loads
+initializeAnalyticsMenu();
 fetchStats();
