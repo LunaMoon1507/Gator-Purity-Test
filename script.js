@@ -163,6 +163,13 @@ disclaimer.addEventListener('change', (e) => {
     }
 });
 
+disclaimer.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        disclaimer.checked = !disclaimer.checked;
+        disclaimer.dispatchEvent(new Event('change'));
+    }
+});
+
 function renderPage() {
     container.innerHTML = '';
     
@@ -188,6 +195,16 @@ function renderPage() {
         
         checkbox.addEventListener('change', (e) => {
             item.checked = e.target.checked;
+        });
+
+        checkbox.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const card = checkbox.closest('.question-item');
+                card.classList.add('pressing');
+                setTimeout(() => card.classList.remove('pressing'), 150);
+                checkbox.checked = !checkbox.checked;
+                item.checked = checkbox.checked;
+            }
         });
 
         const label = document.createElement('label');

@@ -113,6 +113,16 @@ summary {
     transform: translateZ(0) scale(0.98) translateY(2px);  /* CHANGE THIS */
 }
 
+.question-item.pressing {
+    transform: translateZ(0) scale(0.98) translateY(2px);
+    transition: transform 0.08s ease;
+}
+
+.question-item:focus-within {
+    transform: translateZ(0) scale(1.015);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+}
+
 .question-item input {
     margin-top: 5px;
     margin-right: 15px;
