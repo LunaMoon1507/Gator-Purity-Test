@@ -1,4 +1,9 @@
 const backendURL = "https://script.google.com/macros/s/AKfycbwl76IRcvdgC5sg1tmyg3yQEXBjn1ELcY-rhIjP68D9NDDc67N3XN28DD4bAIwMELEx/exec"; 
+const analyticsState = {
+    rawData: [],
+    weeklyChartData: null,
+    isReady: false
+};
 
 async function fetchStats() {
     try {
@@ -32,6 +37,90 @@ function normalizeChartScore(score) {
     }
 
     return score;
+}
+
+function initializeAnalyticsMenu() {
+    const analyticsSelect = document.getElementById('analytics-select');
+    if (!analyticsSelect) return;
+
+    analyticsSelect.addEventListener('change', async () => {
+        const selectedOption = analyticsSelect.options[analyticsSelect.selectedIndex];
+        const selectedValue = selectedOption?.value || '';
+        await renderAnalyticsSelection(selectedValue);
+    });
+}
+
+function setChartLoading(loadingText, isVisible) {
+    const chartLoadingMsg = document.getElementById('chart-loading-msg');
+    if (!chartLoadingMsg) return;
+
+    chartLoadingMsg.innerText = loadingText;
+    chartLoadingMsg.classList.toggle('hidden', !isVisible);
+}
+
+function showChartContainer(isVisible) {
+    const chartContainer = document.getElementById('chart-container');
+    if (!chartContainer) return;
+
+    chartContainer.classList.toggle('hidden', !isVisible);
+}
+
+function setChartTitle(title) {
+    const chartTitle = document.getElementById('chart-title');
+    if (!chartTitle) return;
+
+    chartTitle.innerText = title;
+}
+
+function destroyExistingChart() {
+    if (window.myChart) {
+        window.myChart.destroy();
+    }
+}
+
+function wait(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
+
+async function renderAnalyticsSelection(selection) {
+    if (!analyticsState.isReady) return;
+
+    if (!selection) {
+        showChartContainer(false);
+        setChartLoading('', false);
+        destroyExistingChart();
+        return;
+    }
+
+    setChartLoading('Loading analytics...', true);
+    showChartContainer(false);
+    await wait(350);
+
+    switch (selection) {
+        case 'average-scores-last-30':
+            setChartTitle('Average Scores (Last 30 Days)');
+            drawAverageScoresChart(analyticsState.weeklyChartData);
+            break;
+        case 'scores-vs-age':
+            setChartTitle('Scores vs. Age');
+            drawPlaceholderScoresVsAgeChart();
+            break;
+        case 'majors-highest':
+            setChartTitle('Majors with the Highest Scores');
+            drawPlaceholderMajorsHighestChart();
+            break;
+        case 'majors-lowest':
+            setChartTitle('Majors with the Lowest Scores');
+            drawPlaceholderMajorsLowestChart();
+            break;
+        default:
+            return;
+    }
+
+    setChartLoading('', false);
+    showChartContainer(true);
 }
 
 function createWeeklyChartData() {
@@ -117,11 +206,39 @@ function processData(data) {
     document.getElementById('loading-msg').classList.add('hidden');
     document.getElementById('dashboard-content').classList.remove('hidden');
 
-    // Draw Chart
-    drawChart(weeklyChartData);
+    analyticsState.rawData = data;
+    analyticsState.weeklyChartData = weeklyChartData;
+    analyticsState.isReady = true;
+
+    // Keep chart hidden until a dropdown selection is made.
+    document.getElementById('analytics-select').value = '';
+    setChartLoading('', false);
+    showChartContainer(false);
 }
 
-function drawChart(weeklyChartData) {
+function getCommonChartOptions() {
+    return {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: false,
+                suggestedMin: 0,
+                suggestedMax: 100,
+                grid: { color: '#555' },
+                ticks: { color: '#fff' }
+            },
+            x: {
+                grid: { color: '#555' },
+                ticks: { color: '#fff' }
+            }
+        },
+        plugins: {
+            legend: { labels: { color: '#fff' } }
+        }
+    };
+}
+
+function drawAverageScoresChart(weeklyChartData) {
     const labels = weeklyChartData.points.map((point) => formatLabelMD(point.anchorDate));
     const weekRanges = weeklyChartData.points.map((point) => (
         `${formatLabelMD(point.windowStart)} - ${formatLabelMD(point.anchorDate)}`
@@ -133,10 +250,22 @@ function drawChart(weeklyChartData) {
 
     const ctx = document.getElementById('scoreChart').getContext('2d');
     
-    // Check if chart already exists to avoid canvas overlap
-    if(window.myChart) {
-        window.myChart.destroy();
-    }
+    destroyExistingChart();
+
+    const options = getCommonChartOptions();
+    options.plugins.tooltip = {
+        callbacks: {
+            title: (items) => items?.[0]?.label ?? "",
+            label: (context) => {
+                const rangeIndex = context.dataIndex;
+
+                const rangeLabel = weekRanges[rangeIndex];
+                return rangeLabel
+                    ? `Avg Score (${rangeLabel}): ${context.parsed.y}`
+                    : `Avg Score: ${context.parsed.y}`;
+            }
+        }
+    };
 
     window.myChart = new Chart(ctx, {
         type: 'line',
@@ -156,42 +285,70 @@ function drawChart(weeklyChartData) {
                 pointRadius: 5
             }]
         },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    suggestedMin: 0,
-                    suggestedMax: 100,
-                    grid: { color: '#555' },
-                    ticks: { color: '#fff' }
-                },
-                x: {
-                    grid: { color: '#555' },
-                    ticks: { color: '#fff' }
-                }
-            },
-            plugins: {
-                legend: { labels: { color: '#fff' } },
+        options: options
+    });
+}
 
-                // Force tooltip hover title to match simplified date label
-                tooltip: {
-                    callbacks: {
-                        title: (items) => items?.[0]?.label ?? "",
-                        label: (context) => {
-                            const rangeIndex = context.dataIndex;
+function drawPlaceholderScoresVsAgeChart() {
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+    destroyExistingChart();
 
-                            const rangeLabel = weekRanges[rangeIndex];
-                            return rangeLabel
-                                ? `Avg Score (${rangeLabel}): ${context.parsed.y}`
-                                : `Avg Score: ${context.parsed.y}`;
-                        }
-                    }
-                }
-            }
-        }
+    window.myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['18-19', '20-21', '22-23', '24+'],
+            datasets: [{
+                label: 'Average Score',
+                data: [54, 58, 61, 56],
+                backgroundColor: 'rgba(14, 145, 227, 0.5)',
+                borderColor: '#0e91e3',
+                borderWidth: 2
+            }]
+        },
+        options: getCommonChartOptions()
+    });
+}
+
+function drawPlaceholderMajorsHighestChart() {
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+    destroyExistingChart();
+
+    window.myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Engineering', 'Business', 'Biology', 'Psychology'],
+            datasets: [{
+                label: 'Average Score',
+                data: [72, 69, 67, 65],
+                backgroundColor: 'rgba(247, 115, 0, 0.5)',
+                borderColor: '#f77300',
+                borderWidth: 2
+            }]
+        },
+        options: getCommonChartOptions()
+    });
+}
+
+function drawPlaceholderMajorsLowestChart() {
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+    destroyExistingChart();
+
+    window.myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Math', 'History', 'Chemistry', 'English'],
+            datasets: [{
+                label: 'Average Score',
+                data: [38, 41, 44, 46],
+                backgroundColor: 'rgba(14, 145, 227, 0.5)',
+                borderColor: '#0e91e3',
+                borderWidth: 2
+            }]
+        },
+        options: getCommonChartOptions()
     });
 }
 
 // Start fetching when page loads
+initializeAnalyticsMenu();
 fetchStats();

@@ -40,8 +40,21 @@
                 </div>
             </div>
 
-            <div class="chart-container">
-                <h3 style="text-align: center; color: white; margin-top: 0;">Average Score (Last 30 Days)</h3>
+            <div class="analytics-menu-container">
+                <label for="analytics-select" class="analytics-menu-label">View more analytics:</label>
+                <select id="analytics-select" class="analytics-select" aria-label="View more analytics">
+                    <option value="" selected>Choose your graph...</option>
+                    <option value="average-scores-last-30">Average Scores (Last 30 Days)</option>
+                    <option value="scores-vs-age">Scores vs. Age</option>
+                    <option value="majors-highest">Majors with the highest scores</option>
+                    <option value="majors-lowest">Majors with the lowest scores</option>
+                </select>
+            </div>
+
+            <div id="chart-loading-msg" class="hidden">Loading analytics...</div>
+
+            <div id="chart-container" class="chart-container hidden">
+                <h3 id="chart-title" class="chart-title">Average Scores (Last 30 Days)</h3>
                 <canvas id="scoreChart"></canvas>
             </div>
         </div>
