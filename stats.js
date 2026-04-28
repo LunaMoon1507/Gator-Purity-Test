@@ -107,9 +107,9 @@ function drawChart(dailyScores) {
             datasets: [{
                 label: 'Average Score',
                 data: chartData,
-                // borderColor: '#0e91e3', // UF Blue
+                borderColor: '#0e91e3', // UF Blue
                 backgroundColor: 'rgba(14, 145, 227, 0.2)',
-                borderWidth: 0,
+                borderWidth: 2,
                 tension: 0.3,
                 fill: true,
                 pointBackgroundColor: '#fa8334', // UF Orange
