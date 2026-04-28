@@ -115,7 +115,6 @@ summary {
 
 .question-item.pressing {
     transform: translateZ(0) scale(0.98) translateY(2px);
-    transition: transform 0.08s ease;
 }
 
 .question-item:focus-within {
