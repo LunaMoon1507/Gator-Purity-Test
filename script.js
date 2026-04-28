@@ -67,7 +67,7 @@ Had sex (lost your virginity)? 3
 Had sex three or more times in one night? 3
 Had sex 10 or more times in your life? 3
 Had sex in four or more positions? 2
-69? 3
+?? 3
 Had sex with a stranger or person you just met? 3
 Had sex in a car? 2
 Rented a hotel/motel/bedroom specifically for the purpose of committing a sexual act? 2
@@ -121,7 +121,7 @@ rawQuestions.split('\n').forEach(line => {
 });
 
 // 2. Randomize & Handle Question 69
-const q69Index = parsedQuestions.findIndex(item => item.q.includes("69?"));
+const q69Index = parsedQuestions.findIndex(item => item.q.includes("??"));
 let q69Obj = null;
 
 if (q69Index !== -1) {
