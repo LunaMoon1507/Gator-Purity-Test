@@ -253,7 +253,17 @@ document.getElementById('submit-data-btn').addEventListener('click', async () =>
     
     // Format date/time locally
     const now = new Date();
-    const timestamp = now.toLocaleString(); 
+    const now = new Date();
+    const timestamp = now.toLocaleString("en-US", {
+        timeZone: "America/New_York",
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true
+    });
 
     const analyticsData = {
         score: finalScore,
