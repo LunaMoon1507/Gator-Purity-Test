@@ -16,23 +16,62 @@ async function fetchStats() {
     }
 }
 
+function getStartOfDay(date) {
+    const normalizedDate = new Date(date);
+    normalizedDate.setHours(0, 0, 0, 0);
+    return normalizedDate;
+}
+
+function formatLabelMD(date) {
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function normalizeChartScore(score) {
+    if (!Number.isFinite(score) || score === 0 || score === 100) {
+        return 50;
+    }
+
+    return score;
+}
+
+function createWeeklyChartData() {
+    const today = getStartOfDay(new Date());
+    const points = [];
+
+    for (let weeksAgo = 4; weeksAgo >= 0; weeksAgo -= 1) {
+        const anchorDate = new Date(today);
+        anchorDate.setDate(today.getDate() - (weeksAgo * 7));
+
+        const windowStart = new Date(anchorDate);
+        windowStart.setDate(anchorDate.getDate() - 6);
+
+        points.push({
+            anchorDate,
+            windowStart,
+            sum: 0,
+            count: 0
+        });
+    }
+
+    return { points };
+}
+
 function processData(data) {
     let totalScore = 0;
+    let validCount = 0;
     let highest = { score: -1, major: "" };
     let lowest = { score: 101, major: "" };
-    
-    // Object to hold dates and scores for the chart
-    const dailyScores = {};
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const weeklyChartData = createWeeklyChartData();
 
     data.forEach(entry => {
         // Assume headers in Sheet are: Date, Score, Birth Year, Major
         const score = parseInt(entry.Score);
-        if (isNaN(score)) return;
+        if (isNaN(score) || score === 0 || score === 100) return;
 
         // Overall Stats
         totalScore += score;
+        validCount += 1;
         
         if (score > highest.score) {
             highest.score = score;
@@ -44,21 +83,28 @@ function processData(data) {
             lowest.major = entry.Major || "Not specified";
         }
 
-        // Chart Data formatting (group by date)
+        // Group qualifying scores into five weekly buckets, each ending on an x-axis date.
         const dateObj = new Date(entry.Date);
-        if (dateObj >= thirtyDaysAgo) {
-            // Format as YYYY-MM-DD
-            const dateString = dateObj.toISOString().split('T')[0]; 
-            if (!dailyScores[dateString]) {
-                dailyScores[dateString] = { sum: 0, count: 0 };
+        if (Number.isNaN(dateObj.getTime())) return;
+
+        const entryDate = getStartOfDay(dateObj);
+        weeklyChartData.points.forEach((point) => {
+            const isInBucket = entryDate >= point.windowStart && entryDate <= point.anchorDate;
+
+            if (isInBucket) {
+                point.sum += score;
+                point.count += 1;
             }
-            dailyScores[dateString].sum += score;
-            dailyScores[dateString].count += 1;
-        }
+        });
     });
 
+    if (validCount === 0) {
+        document.getElementById('loading-msg').innerText = "No qualifying data available yet.";
+        return;
+    }
+
     // Calculate Averages
-    const avgScore = Math.floor(totalScore / data.length);
+    const avgScore = Math.floor(totalScore / validCount);
     
     // Update DOM
     document.getElementById('avg-score').innerText = avgScore;
@@ -72,25 +118,17 @@ function processData(data) {
     document.getElementById('dashboard-content').classList.remove('hidden');
 
     // Draw Chart
-    drawChart(dailyScores);
+    drawChart(weeklyChartData);
 }
 
-function drawChart(dailyScores) {
-    // Sort dates chronologically
-    const sortedDates = Object.keys(dailyScores).sort();
-    
-    const labels = [];
-    const chartData = [];
-
-    // helper: "2026-04-27" -> "4/27"
-    const formatLabelMD = (yyyyMmDd) => {
-        const [y, m, d] = yyyyMmDd.split('-').map(Number);
-        return `${m}/${d}`;
-    };
-    
-    sortedDates.forEach(date => {
-        labels.push(formatLabelMD(date));
-        chartData.push(Math.floor(dailyScores[date].sum / dailyScores[date].count));
+function drawChart(weeklyChartData) {
+    const labels = weeklyChartData.points.map((point) => formatLabelMD(point.anchorDate));
+    const weekRanges = weeklyChartData.points.map((point) => (
+        `${formatLabelMD(point.windowStart)} - ${formatLabelMD(point.anchorDate)}`
+    ));
+    const chartData = weeklyChartData.points.map((point) => {
+        const averageScore = point.count > 0 ? Math.floor(point.sum / point.count) : NaN;
+        return normalizeChartScore(averageScore);
     });
 
     const ctx = document.getElementById('scoreChart').getContext('2d');
@@ -108,11 +146,13 @@ function drawChart(dailyScores) {
                 label: 'Average Score',
                 data: chartData,
                 borderColor: '#0e91e3', // UF Blue
-                backgroundColor: 'rgba(14, 145, 227, 0.2)',
+                backgroundColor: 'rgba(14, 145, 227, 0.5)',
                 borderWidth: 2,
                 tension: 0.3,
+                spanGaps: false,
                 fill: true,
-                pointBackgroundColor: '#fa8334', // UF Orange
+                pointBackgroundColor: '#0e91e3',
+                pointBorderColor: '#0e91e3',
                 pointRadius: 5
             }]
         },
@@ -137,7 +177,15 @@ function drawChart(dailyScores) {
                 // Force tooltip hover title to match simplified date label
                 tooltip: {
                     callbacks: {
-                        title: (items) => items?.[0]?.label ?? ""
+                        title: (items) => items?.[0]?.label ?? "",
+                        label: (context) => {
+                            const rangeIndex = context.dataIndex;
+
+                            const rangeLabel = weekRanges[rangeIndex];
+                            return rangeLabel
+                                ? `Avg Score (${rangeLabel}): ${context.parsed.y}`
+                                : `Avg Score: ${context.parsed.y}`;
+                        }
                     }
                 }
             }
