@@ -82,8 +82,14 @@ function drawChart(dailyScores) {
     const labels = [];
     const chartData = [];
 
+    // helper: "2026-04-27" -> "4/27"
+    const formatLabelMD = (yyyyMmDd) => {
+        const [y, m, d] = yyyyMmDd.split('-').map(Number);
+        return `${m}/${d}`;
+    };
+    
     sortedDates.forEach(date => {
-        labels.push(date);
+        labels.push(formatLabelMD(date));
         chartData.push(Math.floor(dailyScores[date].sum / dailyScores[date].count));
     });
 
@@ -101,9 +107,9 @@ function drawChart(dailyScores) {
             datasets: [{
                 label: 'Average Score',
                 data: chartData,
-                borderColor: '#0e91e3', // UF Blue
+                // borderColor: '#0e91e3', // UF Blue
                 backgroundColor: 'rgba(14, 145, 227, 0.2)',
-                borderWidth: 3,
+                borderWidth: 0,
                 tension: 0.3,
                 fill: true,
                 pointBackgroundColor: '#fa8334', // UF Orange
@@ -126,7 +132,14 @@ function drawChart(dailyScores) {
                 }
             },
             plugins: {
-                legend: { labels: { color: '#fff' } }
+                legend: { labels: { color: '#fff' } },
+
+                // Force tooltip hover title to match simplified date label
+                tooltip: {
+                    callbacks: {
+                        title: (items) => items?.[0]?.label ?? ""
+                    }
+                }
             }
         }
     });
