@@ -65,6 +65,22 @@ function showChartContainer(isVisible) {
     chartContainer.classList.toggle('hidden', !isVisible);
 }
 
+function showCanvasView() {
+    const chartCanvas = document.getElementById('scoreChart');
+    const rankingsView = document.getElementById('rankings-view');
+
+    if (chartCanvas) chartCanvas.classList.remove('hidden');
+    if (rankingsView) rankingsView.classList.add('hidden');
+}
+
+function showRankingsView() {
+    const chartCanvas = document.getElementById('scoreChart');
+    const rankingsView = document.getElementById('rankings-view');
+
+    if (chartCanvas) chartCanvas.classList.add('hidden');
+    if (rankingsView) rankingsView.classList.remove('hidden');
+}
+
 function setChartTitle(title) {
     const chartTitle = document.getElementById('chart-title');
     if (!chartTitle) return;
@@ -76,6 +92,21 @@ function destroyExistingChart() {
     if (window.myChart) {
         window.myChart.destroy();
     }
+}
+
+function getValidEntries(rawData) {
+    return rawData
+        .map((entry) => {
+            const score = parseInt(entry.Score, 10);
+            const birthYear = parseInt(entry['Birth Year'], 10);
+            const major = typeof entry.Major === 'string' ? entry.Major.trim() : '';
+            return {
+                score,
+                birthYear,
+                major
+            };
+        })
+        .filter((entry) => Number.isFinite(entry.score) && entry.score !== 0 && entry.score !== 100);
 }
 
 function wait(ms) {
@@ -105,15 +136,15 @@ async function renderAnalyticsSelection(selection) {
             break;
         case 'scores-vs-age':
             setChartTitle('Scores vs. Age');
-            drawPlaceholderScoresVsAgeChart();
+            drawScoresVsAgeChart(analyticsState.rawData);
             break;
         case 'majors-highest':
             setChartTitle('Majors with the Highest Scores');
-            drawPlaceholderMajorsHighestChart();
+            drawMajorsRanking(analyticsState.rawData, 'highest');
             break;
         case 'majors-lowest':
             setChartTitle('Majors with the Lowest Scores');
-            drawPlaceholderMajorsLowestChart();
+            drawMajorsRanking(analyticsState.rawData, 'lowest');
             break;
         default:
             return;
@@ -239,6 +270,7 @@ function getCommonChartOptions() {
 }
 
 function drawAverageScoresChart(weeklyChartData) {
+    showCanvasView();
     const labels = weeklyChartData.points.map((point) => formatLabelMD(point.anchorDate));
     const weekRanges = weeklyChartData.points.map((point) => (
         `${formatLabelMD(point.windowStart)} - ${formatLabelMD(point.anchorDate)}`
@@ -289,64 +321,112 @@ function drawAverageScoresChart(weeklyChartData) {
     });
 }
 
-function drawPlaceholderScoresVsAgeChart() {
+function drawScoresVsAgeChart(rawData) {
+    showCanvasView();
     const ctx = document.getElementById('scoreChart').getContext('2d');
     destroyExistingChart();
+
+    const validEntries = getValidEntries(rawData);
+    const yearStats = {};
+
+    for (let year = 2000; year <= 2012; year += 1) {
+        yearStats[year] = { sum: 0, count: 0 };
+    }
+
+    validEntries.forEach((entry) => {
+        if (!Number.isFinite(entry.birthYear)) return;
+        if (entry.birthYear < 2000 || entry.birthYear > 2012) return;
+
+        yearStats[entry.birthYear].sum += entry.score;
+        yearStats[entry.birthYear].count += 1;
+    });
+
+    const labels = [];
+    const data = [];
+    for (let year = 2000; year <= 2012; year += 1) {
+        labels.push(String(year));
+        const stats = yearStats[year];
+        data.push(stats.count > 0 ? Math.round(stats.sum / stats.count) : null);
+    }
+
+    const options = getCommonChartOptions();
+    options.scales.y.beginAtZero = true;
+    options.plugins.tooltip = {
+        callbacks: {
+            label: (context) => {
+                if (context.parsed.y == null) return '';
+                return `Avg Score: ${context.parsed.y}`;
+            }
+        }
+    };
 
     window.myChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['18-19', '20-21', '22-23', '24+'],
+            labels,
             datasets: [{
                 label: 'Average Score',
-                data: [54, 58, 61, 56],
+                data,
                 backgroundColor: 'rgba(14, 145, 227, 0.5)',
                 borderColor: '#0e91e3',
                 borderWidth: 2
             }]
         },
-        options: getCommonChartOptions()
+        options
     });
 }
 
-function drawPlaceholderMajorsHighestChart() {
-    const ctx = document.getElementById('scoreChart').getContext('2d');
-    destroyExistingChart();
+function getMajorAverages(rawData) {
+    const validEntries = getValidEntries(rawData);
+    const majorStats = {};
 
-    window.myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Engineering', 'Business', 'Biology', 'Psychology'],
-            datasets: [{
-                label: 'Average Score',
-                data: [72, 69, 67, 65],
-                backgroundColor: 'rgba(247, 115, 0, 0.5)',
-                borderColor: '#f77300',
-                borderWidth: 2
-            }]
-        },
-        options: getCommonChartOptions()
+    validEntries.forEach((entry) => {
+        const majorKey = entry.major;
+        if (!majorKey) return;
+        if (majorKey.toUpperCase() === 'N/A') return;
+
+        if (!majorStats[majorKey]) {
+            majorStats[majorKey] = { sum: 0, count: 0 };
+        }
+
+        majorStats[majorKey].sum += entry.score;
+        majorStats[majorKey].count += 1;
     });
+
+    return Object.entries(majorStats).map(([major, stats]) => ({
+        major,
+        average: Math.round(stats.sum / stats.count)
+    }));
 }
 
-function drawPlaceholderMajorsLowestChart() {
-    const ctx = document.getElementById('scoreChart').getContext('2d');
+function drawMajorsRanking(rawData, mode) {
     destroyExistingChart();
+    showRankingsView();
 
-    window.myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Math', 'History', 'Chemistry', 'English'],
-            datasets: [{
-                label: 'Average Score',
-                data: [38, 41, 44, 46],
-                backgroundColor: 'rgba(14, 145, 227, 0.5)',
-                borderColor: '#0e91e3',
-                borderWidth: 2
-            }]
-        },
-        options: getCommonChartOptions()
+    const rankingsView = document.getElementById('rankings-view');
+    if (!rankingsView) return;
+
+    const majorAverages = getMajorAverages(rawData);
+    if (!majorAverages.length) {
+        rankingsView.innerHTML = '<div class="ranking-empty">No qualifying major data is available yet.</div>';
+        return;
+    }
+
+    const sortedMajors = majorAverages.sort((a, b) => {
+        if (a.average === b.average) {
+            return a.major.localeCompare(b.major);
+        }
+
+        return mode === 'highest' ? b.average - a.average : a.average - b.average;
     });
+
+    let topFive = sortedMajors.slice(0, 5);
+
+    const rankingHtml = topFive
+        .map((item, index) => `<div class="ranking-item">${index + 1}) ${item.major} - ${item.average}</div>`)
+        .join('');
+
+    rankingsView.innerHTML = `<div class="ranking-list">${rankingHtml}</div>`;
 }
 
 // Start fetching when page loads

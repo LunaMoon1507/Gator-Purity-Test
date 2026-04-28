@@ -273,6 +273,39 @@ button:disabled { background-color: var(--gray); cursor: not-allowed; }
     margin-top: 0;
 }
 
+#rankings-view {
+    margin-top: 10px;
+}
+
+.ranking-list {
+    display: grid;
+    gap: 10px;
+}
+
+.ranking-item {
+    border: 2px solid var(--uf-blue);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background-color: #2a2a2a;
+    color: #fff;
+    font-weight: bold;
+    transform: translateZ(0);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ranking-item:hover {
+    transform: translateZ(0) scale(1.01);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.ranking-empty {
+    border: 1px solid var(--gray);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background-color: #2a2a2a;
+    color: #ddd;
+}
+
 #chart-loading-msg {
     text-align: center;
     font-size: 1.05rem;
