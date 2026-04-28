@@ -67,7 +67,7 @@ Had sex (lost your virginity)? 3
 Had sex three or more times in one night? 3
 Had sex 10 or more times in your life? 3
 Had sex in four or more positions? 2
-69? 3
+?? 3
 Had sex with a stranger or person you just met? 3
 Had sex in a car? 2
 Rented a hotel/motel/bedroom specifically for the purpose of committing a sexual act? 2
@@ -121,7 +121,7 @@ rawQuestions.split('\n').forEach(line => {
 });
 
 // 2. Randomize & Handle Question 69
-const q69Index = parsedQuestions.findIndex(item => item.q.includes("69?"));
+const q69Index = parsedQuestions.findIndex(item => item.q.includes("??"));
 let q69Obj = null;
 
 if (q69Index !== -1) {
@@ -163,6 +163,13 @@ disclaimer.addEventListener('change', (e) => {
     }
 });
 
+disclaimer.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        disclaimer.checked = !disclaimer.checked;
+        disclaimer.dispatchEvent(new Event('change'));
+    }
+});
+
 function renderPage() {
     container.innerHTML = '';
     
@@ -188,6 +195,16 @@ function renderPage() {
         
         checkbox.addEventListener('change', (e) => {
             item.checked = e.target.checked;
+        });
+
+        checkbox.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const card = checkbox.closest('.question-item');
+                card.classList.add('pressing');
+                setTimeout(() => card.classList.remove('pressing'), 150);
+                checkbox.checked = !checkbox.checked;
+                item.checked = checkbox.checked;
+            }
         });
 
         const label = document.createElement('label');
