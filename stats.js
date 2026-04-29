@@ -76,9 +76,21 @@ function showCanvasView() {
 function showRankingsView() {
     const chartCanvas = document.getElementById('scoreChart');
     const rankingsView = document.getElementById('rankings-view');
+    const majorSearchView = document.getElementById('major-search-view');
 
     if (chartCanvas) chartCanvas.classList.add('hidden');
     if (rankingsView) rankingsView.classList.remove('hidden');
+    if (majorSearchView) majorSearchView.classList.add('hidden');
+}
+
+function showMajorSearchView() {
+    const chartCanvas = document.getElementById('scoreChart');
+    const rankingsView = document.getElementById('rankings-view');
+    const majorSearchView = document.getElementById('major-search-view');
+
+    if (chartCanvas) chartCanvas.classList.add('hidden');
+    if (rankingsView) rankingsView.classList.add('hidden');
+    if (majorSearchView) majorSearchView.classList.remove('hidden');
 }
 
 function setChartTitle(title) {
@@ -107,6 +119,66 @@ function getValidEntries(rawData) {
             };
         })
         .filter((entry) => Number.isFinite(entry.score) && entry.score !== 0 && entry.score !== 100);
+}
+
+function formatMajorTitleCase(input) {
+    return input
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+function initializeMajorSearch() {
+    const majorSearchBtn = document.getElementById('major-search-btn');
+    const majorSearchInput = document.getElementById('major-search-input');
+
+    if (majorSearchBtn) {
+        majorSearchBtn.addEventListener('click', () => {
+            runMajorSearch();
+        });
+    }
+
+    if (majorSearchInput) {
+        majorSearchInput.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            runMajorSearch();
+        });
+    }
+}
+
+function clearMajorSearchResult() {
+    const resultContainer = document.getElementById('major-search-result');
+    if (!resultContainer) return;
+    resultContainer.innerHTML = '';
+}
+
+function runMajorSearch() {
+    const majorSearchInput = document.getElementById('major-search-input');
+    const resultContainer = document.getElementById('major-search-result');
+
+    if (!majorSearchInput || !resultContainer) return;
+
+    const typedMajor = formatMajorTitleCase(majorSearchInput.value || '');
+    majorSearchInput.value = typedMajor;
+
+    if (!typedMajor) {
+        resultContainer.innerHTML = '<div class="ranking-empty">No results found.</div>';
+        return;
+    }
+
+    const majorAverages = getMajorAverages(analyticsState.rawData);
+    const match = majorAverages.find((entry) => entry.major.toLowerCase() === typedMajor.toLowerCase());
+
+    if (!match) {
+        resultContainer.innerHTML = '<div class="ranking-empty">No results found.</div>';
+        return;
+    }
+
+    resultContainer.innerHTML = `<div class="ranking-list"><div class="ranking-item">${match.major} - ${match.average}</div></div>`;
 }
 
 function wait(ms) {
@@ -145,6 +217,10 @@ async function renderAnalyticsSelection(selection) {
         case 'majors-lowest':
             setChartTitle('Majors with the Lowest Scores');
             drawMajorsRanking(analyticsState.rawData, 'lowest');
+            break;
+        case 'major-search-average':
+            setChartTitle('Average Score Search by Major');
+            drawMajorSearchPanel();
             break;
         default:
             return;
@@ -429,6 +505,20 @@ function drawMajorsRanking(rawData, mode) {
     rankingsView.innerHTML = `<div class="ranking-list">${rankingHtml}</div>`;
 }
 
+function drawMajorSearchPanel() {
+    destroyExistingChart();
+    showMajorSearchView();
+
+    const majorSearchInput = document.getElementById('major-search-input');
+    if (majorSearchInput) {
+        majorSearchInput.value = '';
+        majorSearchInput.focus();
+    }
+
+    clearMajorSearchResult();
+}
+
 // Start fetching when page loads
 initializeAnalyticsMenu();
+initializeMajorSearch();
 fetchStats();
