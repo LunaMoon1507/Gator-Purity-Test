@@ -48,6 +48,7 @@
                     <option value="scores-vs-age">Scores vs. Age</option>
                     <option value="majors-highest">Majors with the highest scores</option>
                     <option value="majors-lowest">Majors with the lowest scores</option>
+                    <option value="major-search-average">Average score search by major</option>
                 </select>
             </div>
 
@@ -57,6 +58,13 @@
                 <h3 id="chart-title" class="chart-title">Average Scores (Last 30 Days)</h3>
                 <canvas id="scoreChart"></canvas>
                 <div id="rankings-view" class="hidden"></div>
+                <div id="major-search-view" class="hidden">
+                    <div class="major-search-row">
+                        <input id="major-search-input" class="major-search-input" type="text" placeholder="Enter a major" aria-label="Search major average score">
+                        <button id="major-search-btn" class="major-search-btn" type="button" aria-label="Search major">&#128269;</button>
+                    </div>
+                    <div id="major-search-result"></div>
+                </div>
             </div>
         </div>
     </div>

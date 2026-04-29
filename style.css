@@ -277,6 +277,52 @@ button:disabled { background-color: var(--gray); cursor: not-allowed; }
     margin-top: 10px;
 }
 
+#major-search-view {
+    margin-top: 10px;
+}
+
+.major-search-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.major-search-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--gray);
+    background-color: #444;
+    color: #fff;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.major-search-input:focus {
+    border-color: var(--uf-blue);
+    box-shadow: 0 0 0 3px rgba(11, 135, 212, 0.25);
+    outline: none;
+}
+
+.major-search-btn {
+    min-width: 48px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--uf-blue);
+    background-color: var(--uf-blue);
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.major-search-btn:hover {
+    background-color: #0a78bc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
 .ranking-list {
     display: grid;
     gap: 10px;

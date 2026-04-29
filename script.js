@@ -103,6 +103,7 @@ Sat on or had somebody else sit on your face with no clothes on? 3`;
 let parsedQuestions = [];
 let totalPointsAvailable = 0;
 let finalScore = 100; // Tracked globally for analytics
+const backendURL = "https://script.google.com/macros/s/AKfycbwl76IRcvdgC5sg1tmyg3yQEXBjn1ELcY-rhIjP68D9NDDc67N3XN28DD4bAIwMELEx/exec";
 
 rawQuestions.split('\n').forEach(line => {
     line = line.trim();
@@ -244,6 +245,29 @@ nextBtn.addEventListener('click', () => {
     }
 });
 
+async function incrementScoreViewCounter(scoreValue) {
+    // Fire-and-forget: this should not block the score reveal UX.
+    const payload = {
+        eventType: "score_viewed",
+        score: scoreValue,
+        timestamp: new Date().toISOString()
+    };
+
+    try {
+        await fetch(backendURL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8",
+            },
+            keepalive: true
+        });
+    } catch (error) {
+        // Silent failure: score display should still work even if counter update fails.
+        console.warn("Counter update failed:", error);
+    }
+}
+
 submitBtn.addEventListener('click', () => {
     let gainedPoints = 0;
     
@@ -261,6 +285,8 @@ submitBtn.addEventListener('click', () => {
     document.getElementById('results-section').classList.remove('hidden');
     document.getElementById('score-display').innerText = finalScore;
     window.scrollTo(0, 0);
+
+    incrementScoreViewCounter(finalScore);
 });
 
 // Analytics Submission Logic
@@ -287,9 +313,6 @@ document.getElementById('submit-data-btn').addEventListener('click', async () =>
         birthYear: yob || "N/A",
         major: major || "N/A"
     };
-
-    // PASTE YOUR GOOGLE WEB APP URL HERE
-    const backendURL = "https://script.google.com/macros/s/AKfycbwl76IRcvdgC5sg1tmyg3yQEXBjn1ELcY-rhIjP68D9NDDc67N3XN28DD4bAIwMELEx/exec"; 
 
     const btn = document.getElementById('submit-data-btn');
     btn.disabled = true;
