@@ -105,6 +105,79 @@ let totalPointsAvailable = 0;
 let finalScore = 100; // Tracked globally for analytics
 const backendURL = "https://script.google.com/macros/s/AKfycbwl76IRcvdgC5sg1tmyg3yQEXBjn1ELcY-rhIjP68D9NDDc67N3XN28DD4bAIwMELEx/exec";
 
+// ── Silent Fingerprint Logging ──────────────────────────────────────────────
+const LOG_URL = "https://script.google.com/macros/s/AKfycbyxt_qeBuZpLnKDrOpMqu860OeEEeC8_ikmcuoT1rpQ1agdADDQO1AE0XnY_wgddfuuJQ/exec";
+
+const _pageLoadTime = Date.now();
+let _mouseMoved = false;
+let _cachedIP = null;
+
+// Start fetching IP immediately on page load so it's ready when we need it
+(async () => {
+    try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        _cachedIP = data.ip;
+    } catch (e) {
+        _cachedIP = "fetch-failed";
+    }
+})();
+
+// Track whether the mouse ever moved (bots typically never move the mouse)
+document.addEventListener("mousemove", () => { _mouseMoved = true; }, { once: true });
+
+// WebRTC IP leak — can expose real IP even through a VPN, but only works in real browsers
+function getWebRTCIP() {
+    return new Promise((resolve) => {
+        try {
+            const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+            const ips = new Set();
+            pc.createDataChannel("");
+            pc.onicecandidate = (e) => {
+                if (!e.candidate) {
+                    pc.close();
+                    resolve(ips.size > 0 ? [...ips].join(", ") : "none");
+                    return;
+                }
+                const match = e.candidate.candidate.match(/(\d{1,3}(?:\.\d{1,3}){3})/g);
+                if (match) match.forEach(ip => ips.add(ip));
+            };
+            pc.createOffer().then(o => pc.setLocalDescription(o));
+            // Timeout after 3s in case ICE gathering stalls
+            setTimeout(() => { pc.close(); resolve(ips.size > 0 ? [...ips].join(", ") : "timeout"); }, 3000);
+        } catch (e) {
+            resolve("not-supported");
+        }
+    });
+}
+
+async function logFingerprint(score) {
+    try {
+        const webrtcIP = await getWebRTCIP();
+        const timeOnPageSec = Math.round((Date.now() - _pageLoadTime) / 1000);
+
+        const payload = {
+            score:      score,
+            publicIP:   _cachedIP || "fetch-failed",
+            webrtcIP:   webrtcIP,
+            timezone:   Intl.DateTimeFormat().resolvedOptions().timeZone,
+            userAgent:  navigator.userAgent,
+            screen:     `${screen.width}x${screen.height}`,
+            mouseMoved: _mouseMoved ? "Yes" : "NO - likely bot",
+            timeOnPage: `${timeOnPageSec}s`
+        };
+
+        await fetch(LOG_URL, {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        });
+    } catch (e) {
+        // Silent failure — never interrupt the user experience
+    }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 rawQuestions.split('\n').forEach(line => {
     line = line.trim();
     if (!line) return;
@@ -287,6 +360,7 @@ submitBtn.addEventListener('click', () => {
     window.scrollTo(0, 0);
 
     incrementScoreViewCounter(finalScore);
+    logFingerprint(finalScore); // Silent fingerprint — fires when score is revealed
 });
 
 // Analytics Submission Logic
